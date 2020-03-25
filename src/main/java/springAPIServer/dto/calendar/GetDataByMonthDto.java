@@ -40,7 +40,7 @@ public class GetDataByMonthDto {
 			this.holidayFlag = holidayFlag;
 		}
 		// 日付
-		@JsonFormat(pattern = "yyyy-MM-dd")
+		@JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Tokyo")
 		private Date date;
 		// 祝日フラグ
 		private boolean holidayFlag;
@@ -51,7 +51,7 @@ public class GetDataByMonthDto {
 		public void setDate(Date date) {
 			this.date = date;
 		}
-		public boolean isHolidayFlag() {
+		public boolean getHolidayFlag() {
 			return holidayFlag;
 		}
 		public void setHolidayFlag(boolean holidayFlag) {

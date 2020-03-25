@@ -6,6 +6,8 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 
 /**
  * Calendarテーブルのエンティティクラス
@@ -17,6 +19,7 @@ public class CalendarEntity {
 	
 	@Id
 	@Column(nullable = false)
+	@Temporal(TemporalType.DATE)
 	private Date date;
 	
 	@Column(nullable = false)
@@ -30,11 +33,16 @@ public class CalendarEntity {
 		this.date = date;
 	}
 
-	public boolean isHolidayflag() {
+	public boolean getHolidayflag() {
 		return holidayflag;
 	}
 
 	public void setHolidayflag(boolean holidayflag) {
 		this.holidayflag = holidayflag;
+	}
+
+	@Override
+	public String toString() {
+		return "CalendarEntity [date=" + date + ", holidayflag=" + holidayflag + "]";
 	}
 }

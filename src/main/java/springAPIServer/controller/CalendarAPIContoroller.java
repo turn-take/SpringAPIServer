@@ -5,7 +5,9 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,46 +39,92 @@ public class CalendarAPIContoroller {
 	@GetMapping("/data/{month}")
 	public String getDataByMonth(@PathVariable String month) {
 		try {
-			//　日付フォーマットチェック
-			SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM");
-			sdf.parse(month);
 			
-			// 年・月を取得
-			int y = Integer.parseInt(month.substring(0,4));
-			int m = Integer.parseInt(month.substring(5,7));
+			boolean isNormalParam = checkParamater((param) -> {
+				SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM");
+				try {
+					sdf.parse(param);
+				} catch (ParseException e) {
+					return false;
+				}
+				return true;
+			}, month);
 			
-			Calendar cal = Calendar.getInstance();
-			cal.set(Calendar.YEAR, y);
-			cal.set(Calendar.MONTH, m - 1);
-			
-			// 取得した月の月初を取得
-			cal.set(Calendar.DAY_OF_MONTH, 1);
-			Date firstDate = cal.getTime();
-			
-			// 取得した月の最終日を取得
-			cal.set(y, m, cal.getActualMaximum(Calendar.DATE), 0, 0, 0);
-			Date lastDate = cal.getTime();
-			
-			// InputDto作成
-			GetDataByMonthDto.Input input = new GetDataByMonthDto.Input(firstDate, lastDate);
-			
-			// サービス呼び出し
-			List<GetDataByMonthDto.Output> outputList =  calendarService.getDataByMonth(input);
-			
-			// JSON返却
-			ObjectMapper objectMapper = new ObjectMapper();
-			return objectMapper.writeValueAsString(outputList);
-			
-		} catch(ParseException pe) {
-			StringBuilder sb = new StringBuilder();
-			sb.append("パラメータのフォーマットが違います！YYYY-MM形式で指定してください。 \r\n");
-			sb.append(pe.toString());
-			return sb.toString();
+			if(isNormalParam) {
+				// 中間生産物を操作して最終的にoutputを取得する
+				List<GetDataByMonthDto.Output> outputList =  calendarService.getDataByMonth(YearAndMonth
+						.of(month)
+						.calendarSetting((cal, yAndM) -> {
+							cal.set(Calendar.YEAR, yAndM.getYear());
+							cal.set(Calendar.MONTH, yAndM.getMonth() - 1);})
+						.createInput(cal -> {
+							// 月初を取得
+							cal.set(Calendar.DAY_OF_MONTH, 1);
+							Date firstDate = cal.getTime();
+							// 最終日を取得
+							cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DATE));
+							Date lastDate = cal.getTime();
+							// InputDto作成
+							GetDataByMonthDto.Input input = new GetDataByMonthDto.Input(firstDate, lastDate);
+							return input;
+						}));
+				ObjectMapper objectMapper = new ObjectMapper();
+				return objectMapper.writeValueAsString(outputList);
+			} else {
+				return "えらー";
+			}
 		} catch (JsonProcessingException je) {
 			StringBuilder sb = new StringBuilder();
 			sb.append("JSONフォーマットエラーです。コードを確認してください。 \r\n");
 			sb.append(je.toString());
 			return sb.toString();
+		} catch (Exception e) {
+			StringBuilder sb = new StringBuilder();
+			sb.append("想定外のエラーが発生しました。リクエストとコードを確認してください。 \r\n");
+			sb.append(e.toString());
+			return sb.toString();
+		}
+	}
+	
+	public boolean checkParamater(Predicate<String> checker, String param) {
+		return checker.test(param);
+	}
+	
+	// 中間生産物
+	static class YearAndMonth {
+		int year;
+		int month;
+		
+		Calendar cal;
+		
+		// static
+		public static YearAndMonth of(String month) {
+			return new YearAndMonth(
+					Integer.parseInt(month.substring(0,4)), Integer.parseInt(month.substring(5,7)));
+		}
+		
+		public YearAndMonth(int year, int month) {
+			this.year = year;
+			this.month = month;
+			this.cal = Calendar.getInstance();
+		}
+		
+		public int getYear() {
+			return year;
+		}
+		public int getMonth() {
+			return month;
+		}
+		
+		// 中間操作
+		public YearAndMonth calendarSetting(BiConsumer<Calendar, YearAndMonth> con) {
+			con.accept(this.cal, this);
+			return this;
+		}
+		
+		// 終端操作
+		public GetDataByMonthDto.Input createInput(Function<Calendar, GetDataByMonthDto.Input> func) {
+			return func.apply(this.cal);
 		}
 	}
 }
