@@ -25,16 +25,16 @@ public class CalendarService {
 	 * @return　List<GetDataByMonthDto.Output>
 	 */
 	public List<GetDataByMonthDto.Output> getDataByMonth(GetDataByMonthDto.Input input) {
+		List<GetDataByMonthDto.Output> outputList = new ArrayList<GetDataByMonthDto.Output>();
 		// DBから取得
 		List<CalendarEntity> entities = calendarRepository.findByDateBetween(input.getFirstDate(), input.getLastDate());
 
-		// Output作成
-		List<GetDataByMonthDto.Output> outputList = new ArrayList<GetDataByMonthDto.Output>();
-		entities.forEach(entity -> {
-			GetDataByMonthDto.Output output = new GetDataByMonthDto.Output(entity.getDate(), entity.getHolidayflag());
-			System.out.println(entity);
-			outputList.add(output);
-		});
+		// Output用List作成
+		entities.stream()
+		.map(entity -> {
+			return new GetDataByMonthDto.Output(entity.getDate(), entity.getHolidayflag()); 
+		})
+		.forEach(outputList::add);
 		
 		return outputList;
 	}

@@ -13,7 +13,7 @@ import springAPIServer.dto.ErrorDto.ErrorBody;
 
 
 /**
- * エラーのハンドラ
+ * エラーのハンドラクラス
  */
 @RestControllerAdvice
 public class ErrorHandler {
