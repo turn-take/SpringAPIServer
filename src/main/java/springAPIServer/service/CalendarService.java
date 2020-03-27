@@ -22,7 +22,7 @@ public class CalendarService {
 	/**
 	 * 指定された月のデータ取得する。
 	 * @param GetDataByMonthDto.Input
-	 * @return　GetDataByMonthDto.Output
+	 * @return　List<GetDataByMonthDto.Output>
 	 */
 	public List<GetDataByMonthDto.Output> getDataByMonth(GetDataByMonthDto.Input input) {
 		// DBから取得

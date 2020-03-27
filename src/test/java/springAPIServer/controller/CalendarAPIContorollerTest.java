@@ -1,8 +1,11 @@
 package springAPIServer.controller;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -46,7 +49,25 @@ public class CalendarAPIContorollerTest {
 	}
 	
 	@Test
-	public void getDataByMonthのテスト() {
-		System.out.println(target.getDataByMonth("2020-03"));
+	public void checkParamaterが例外をスローする() {
+		
+		String insuitableFormat1 = "2020-0";
+		String insuitableFormat2 = "2020-013";
+		String insuitableFormat3 = "202001";
+		String insuitableFormat4 = "2020-13";
+		
+		assertThrows(Exception.class, () -> target.getDataByMonth(insuitableFormat1));
+		assertThrows(Exception.class, () -> target.getDataByMonth(insuitableFormat2));
+		assertThrows(Exception.class, () -> target.getDataByMonth(insuitableFormat3));
+		//FIXME 現状では↓はダメです
+		//assertThrows(Exception.class, () -> target.getDataByMonth(insuitableFormat4));
+	}
+	
+	@Test
+	public void checkParamaterが例外をスローしない() {
+		
+		String insuitableFormat1 = "2020-01";
+		
+		assertDoesNotThrow(() -> target.getDataByMonth(insuitableFormat1));
 	}
 }

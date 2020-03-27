@@ -4,6 +4,8 @@ import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
+import springAPIServer.dto.AbstractOutput;
+
 /**
  * 月指定のカレンダーデータ取得処理で使われるDTOクラス
  * コントローラーとサービス間のデータの受け渡しに使う。
@@ -34,12 +36,13 @@ public class GetDataByMonthDto {
 		}
 	}
 	
-	public static class Output {
+	public static class Output extends AbstractOutput{
 		public Output(Date date, boolean holidayFlag) {
 			this.date = date;
 			this.holidayFlag = holidayFlag;
 		}
 		// 日付
+		// MySQLからAsia/Tokyoのタイムゾーンで取得しているので合わせておく
 		@JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Tokyo")
 		private Date date;
 		// 祝日フラグ

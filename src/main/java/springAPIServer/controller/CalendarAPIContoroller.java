@@ -7,17 +7,18 @@ import java.util.Date;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import springAPIServer.dto.SuccessDto;
+import springAPIServer.dto.SuccessDto.SuccessBody;
 import springAPIServer.dto.calendar.GetDataByMonthDto;
+import springAPIServer.function.ThrowableConsumer;
 import springAPIServer.service.CalendarService;
 
 /**
@@ -37,67 +38,76 @@ public class CalendarAPIContoroller {
 	 * @return JSON文字列
 	 */
 	@GetMapping("/data/{month}")
-	public String getDataByMonth(@PathVariable String month) {
+	public ResponseEntity<SuccessDto<GetDataByMonthDto.Output>> getDataByMonth(@PathVariable String month) throws Exception{
 		try {
-			
-			boolean isNormalParam = checkParamater((param) -> {
+			// パラメータチェック
+			checkParamater((param) -> {
 				SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM");
 				try {
+					if(!param.matches("\\d{4}-\\d{2}")) throw new ParseException(param, 0);
+					//FIXME 　日付チェックの厳密化のためにLocalDateを検討
+					sdf.setLenient(false);
 					sdf.parse(param);
 				} catch (ParseException e) {
-					return false;
+					throw new Exception("リクエストパラメータが不正です。 param=" + param);
 				}
-				return true;
 			}, month);
 			
-			if(isNormalParam) {
-				// 中間生産物を操作して最終的にoutputを取得する
-				List<GetDataByMonthDto.Output> outputList =  calendarService.getDataByMonth(YearAndMonth
-						.of(month)
-						.calendarSetting((cal, yAndM) -> {
-							cal.set(Calendar.YEAR, yAndM.getYear());
-							cal.set(Calendar.MONTH, yAndM.getMonth() - 1);})
-						.createInput(cal -> {
-							// 月初を取得
-							cal.set(Calendar.DAY_OF_MONTH, 1);
-							Date firstDate = cal.getTime();
-							// 最終日を取得
-							cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DATE));
-							Date lastDate = cal.getTime();
-							// InputDto作成
-							GetDataByMonthDto.Input input = new GetDataByMonthDto.Input(firstDate, lastDate);
-							return input;
-						}));
-				ObjectMapper objectMapper = new ObjectMapper();
-				return objectMapper.writeValueAsString(outputList);
-			} else {
-				return "えらー";
-			}
-		} catch (JsonProcessingException je) {
-			StringBuilder sb = new StringBuilder();
-			sb.append("JSONフォーマットエラーです。コードを確認してください。 \r\n");
-			sb.append(je.toString());
-			return sb.toString();
-		} catch (Exception e) {
-			StringBuilder sb = new StringBuilder();
-			sb.append("想定外のエラーが発生しました。リクエストとコードを確認してください。 \r\n");
-			sb.append(e.toString());
-			return sb.toString();
+			// サービス呼び出し
+			List<GetDataByMonthDto.Output> outputList =  calendarService.getDataByMonth(
+					// YearAndMonth生成して
+					YearAndMonth.of(month)
+					// Calendarの調節をして
+					.adjustCalendar((cal, yAndM) -> {
+						cal.set(Calendar.YEAR, yAndM.getYear());
+						cal.set(Calendar.MONTH, yAndM.getMonth() - 1);})
+					// InputDtoの生成をする
+					.createInputDto(cal -> {
+						// 月初を取得
+						cal.set(Calendar.DAY_OF_MONTH, 1);
+						Date firstDate = cal.getTime();
+						// 最終日を取得
+						cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DATE));
+						Date lastDate = cal.getTime();
+						// InputDto作成
+						GetDataByMonthDto.Input input = new GetDataByMonthDto.Input(firstDate, lastDate);
+						return input;
+					}));
+			SuccessDto<GetDataByMonthDto.Output> successDto = new SuccessDto<GetDataByMonthDto.Output>(new SuccessBody<GetDataByMonthDto.Output>(outputList));
+			HttpStatus status = HttpStatus.OK;
+	        return new ResponseEntity<>(successDto, status);
+		}catch(Exception e) {
+			throw e;
 		}
 	}
 	
-	public boolean checkParamater(Predicate<String> checker, String param) {
-		return checker.test(param);
+	/**
+	 *　パラメータのチェックを行う
+	 *　TODO オーバーロードで他のパラメータタイプのメソッドを作る
+	 * @param checker 例外を投げうる関数
+	 * @param param チェック対象のパラメータ
+	 * @throws Exception
+	 */
+	public void checkParamater(ThrowableConsumer<String> checker, String param) throws Exception{
+		// 例外を投げるか投げないかの判断をするだけ
+		checker.accept(param);
 	}
 	
-	// 中間生産物
+	/**
+	 * 月と日付を扱うためのクラス
+	 */
 	static class YearAndMonth {
 		int year;
 		int month;
 		
+		// FIXME LocalDateを使いたい
 		Calendar cal;
 		
-		// static
+		/**
+		 *  YYYY-MM形式の文字列からインスタンスを作成するstaticファクトリ
+		 * @param month YYYY-MM形式の文字列
+		 * @return YearAndMonthオブジェクト
+		 */
 		public static YearAndMonth of(String month) {
 			return new YearAndMonth(
 					Integer.parseInt(month.substring(0,4)), Integer.parseInt(month.substring(5,7)));
@@ -116,14 +126,20 @@ public class CalendarAPIContoroller {
 			return month;
 		}
 		
-		// 中間操作
-		public YearAndMonth calendarSetting(BiConsumer<Calendar, YearAndMonth> con) {
+		/**
+		 * インスタンス内で保持するCalendarの調節を行う
+		 * @param Calendarの調節を行う関数
+		 */
+		public YearAndMonth adjustCalendar(BiConsumer<Calendar, YearAndMonth> con) {
 			con.accept(this.cal, this);
 			return this;
 		}
 		
-		// 終端操作
-		public GetDataByMonthDto.Input createInput(Function<Calendar, GetDataByMonthDto.Input> func) {
+		/**
+		 * InputDtoの生成をする
+		 * @param 生成を行う関数
+		 */
+		public GetDataByMonthDto.Input createInputDto(Function<Calendar, GetDataByMonthDto.Input> func) {
 			return func.apply(this.cal);
 		}
 	}
