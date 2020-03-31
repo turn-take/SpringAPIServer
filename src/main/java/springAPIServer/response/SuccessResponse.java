@@ -1,4 +1,4 @@
-package springAPIServer.dto;
+package springAPIServer.response;
 
 import java.util.List;
 
@@ -7,12 +7,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 /**
  * API成功時のレスポンスの基となるDtoクラス
  */
-public class SuccessDto <T extends AbstractOutput> {
+public class SuccessResponse <T> {
 	
 	@JsonProperty("success")
 	private SuccessBody<T> successBody;
 	
-	public SuccessDto(SuccessBody<T> successBody) {
+	public SuccessResponse(SuccessBody<T> successBody) {
 		this.successBody = successBody;
 	}
 
@@ -29,7 +29,7 @@ public class SuccessDto <T extends AbstractOutput> {
 	 * 内容を表示させる
 	 * ResponseEntityで返す想定なのでListでいい
 	 */
-	public static class SuccessBody<T extends AbstractOutput> {
+	public static class SuccessBody<T> {
 		private List<T> contents;
 		
 		public SuccessBody(List<T> contents) {

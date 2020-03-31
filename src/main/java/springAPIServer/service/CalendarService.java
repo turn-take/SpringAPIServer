@@ -16,8 +16,13 @@ import springAPIServer.repository.CalendarRepository;
 @Service
 public class CalendarService {
 	
+	private final CalendarRepository calendarRepository;
+	
+	// コンストラクタインジェクション
 	@Autowired
-	CalendarRepository calendarRepository;
+	public CalendarService(CalendarRepository calendarRepository) {
+		this.calendarRepository = calendarRepository;
+	}
 	
 	/**
 	 * 指定された月のデータ取得する。
@@ -31,9 +36,7 @@ public class CalendarService {
 
 		// Output用List作成
 		entities.stream()
-		.map(entity -> {
-			return new GetDataByMonthDto.Output(entity.getDate(), entity.getHolidayflag()); 
-		})
+		.map(entity -> new GetDataByMonthDto.Output(entity.getDate(), entity.getHolidayflag()))
 		.forEach(outputList::add);
 		
 		return outputList;

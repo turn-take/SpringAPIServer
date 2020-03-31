@@ -1,16 +1,16 @@
-package springAPIServer.dto;
+package springAPIServer.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * APIエラー時のレスポンスの基となるDtoクラス
  */
-public class ErrorDto {
+public class ErrorResponse {
 
 	@JsonProperty("error")
 	private ErrorBody errorBody;
 	
-	public ErrorDto(ErrorBody errorBody) {
+	public ErrorResponse(ErrorBody errorBody) {
 		this.errorBody = errorBody;
 	}
 	

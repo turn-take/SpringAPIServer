@@ -1,7 +1,10 @@
 package springAPIServer.controller;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.DateTimeException;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,11 +15,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import springAPIServer.controller.helper.YearAndMonth;
-import springAPIServer.dto.SuccessDto;
-import springAPIServer.dto.SuccessDto.SuccessBody;
 import springAPIServer.dto.calendar.GetDataByMonthDto;
-import springAPIServer.function.ThrowableConsumer;
+import springAPIServer.response.SuccessResponse;
+import springAPIServer.response.SuccessResponse.SuccessBody;
 import springAPIServer.service.CalendarService;
 
 /**
@@ -27,51 +28,50 @@ import springAPIServer.service.CalendarService;
 @RequestMapping("/api/v1.0/calendar")
 public class CalendarAPIContoroller {
 	
-	@Autowired
-	CalendarService calendarService;
+	private final CalendarService calendarService;
 	
+	// コンストラクタインジェクション
+	@Autowired
+	public CalendarAPIContoroller(CalendarService calendarService) {
+		this.calendarService = calendarService;
+	}
 	/**
 	 * URLパラメータで渡された月のカレンダー情報を取得する。
 	 * @param month(YYYY-MM)
 	 * @return JSON文字列
 	 */
 	@GetMapping("/data/{month}")
-	public ResponseEntity<SuccessDto<GetDataByMonthDto.Output>> getDataByMonth(@PathVariable String month) throws Exception{
+	public ResponseEntity<SuccessResponse<GetDataByMonthDto.Output>> getDataByMonth(@PathVariable String month) throws Exception{
 		try {
-			// パラメータチェック
-			checkPathParamater((param) -> {
-				SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM");
-				try {
-					if(!param.matches("\\d{4}-\\d{2}")) throw new ParseException(param, 0);
-					//FIXME 　日付チェックの厳密化のためにLocalDateを検討
-					sdf.setLenient(false);
-					sdf.parse(param);
-				} catch (ParseException e) {
-					throw new Exception("リクエストパラメータが不正です。 param=" + param);
-				}
-			}, month);
+			// 正規表現でYYYY-MM形式化のチェック
+			if(!month.matches("^\\d{4}-\\d{2}$")) throw new DateTimeException("");
+			
+			// YearMonthオブジェクトを利用して月初と最終日を取得する。
+			YearMonth yearMonth = YearMonth.of(Integer.parseInt(month.substring(0,4)), Integer.parseInt(month.substring(5,7)));
+			Date firstDateOfMonth = localDateToDate(yearMonth.atDay(1));
+			Date lastDateOfMonth = localDateToDate(yearMonth.atEndOfMonth());
+			
+			// InputDtoを作成する。
+			GetDataByMonthDto.Input inputDto = new GetDataByMonthDto.Input(firstDateOfMonth, lastDateOfMonth);
 			
 			// サービス呼び出し
-			List<GetDataByMonthDto.Output> outputList =  calendarService.getDataByMonth(
-					// InputDto生成
-					YearAndMonth.of(month).createInputDto());
-			SuccessDto<GetDataByMonthDto.Output> successDto = new SuccessDto<GetDataByMonthDto.Output>(new SuccessBody<GetDataByMonthDto.Output>(outputList));
-			HttpStatus status = HttpStatus.OK;
-	        return new ResponseEntity<>(successDto, status);
+			List<GetDataByMonthDto.Output> outputList = calendarService.getDataByMonth(inputDto);
+			
+			// OutputDtoのリストからレスポンスを作成
+			SuccessResponse<GetDataByMonthDto.Output> successResponse = new SuccessResponse<GetDataByMonthDto.Output>(new SuccessBody<GetDataByMonthDto.Output>(outputList));
+			
+			// レスポンス返却
+	        return new ResponseEntity<>(successResponse, HttpStatus.OK);
+		}catch(DateTimeException e) { // 日付フォーマットエラーの場合
+			e.printStackTrace();
+			throw new DateTimeException("リクエストパラメータが不正です。 パラメータ=" + month);
 		}catch(Exception e) {
-			throw e;
+			e.printStackTrace();
+			throw new Exception("サーバ処理中にエラーが発生しました。");
 		}
 	}
 	
-	/**
-	 *　パスパラメータのチェックを行う
-	 *　TODO オーバーロードで他のパラメータタイプのメソッドを作る
-	 * @param checker 例外を投げうる関数
-	 * @param param チェック対象のパラメータ
-	 * @throws Exception
-	 */
-	public void checkPathParamater(ThrowableConsumer<String> checker, String param) throws Exception{
-		// 例外を投げるか投げないかの判断をするだけ
-		checker.accept(param);
+	public static Date localDateToDate(final LocalDate localDate) {
+		  return Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
 	}
 }
