@@ -5,10 +5,10 @@ import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
- * 月指定のカレンダーデータ取得処理で使われるDTOクラス
+ * カレンダーテーブル操作で使われるDTOクラス
  * コントローラーとサービス間のデータの受け渡しに使う。
  */
-public class GetDataByMonthDto {
+public class CalendarDto {
 
 	public static class Input {
 		public Input(Date firstDate, Date lastDate) {

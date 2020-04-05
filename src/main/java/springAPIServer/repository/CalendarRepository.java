@@ -14,6 +14,9 @@ import springAPIServer.entity.CalendarEntity;
 @Repository
 public interface CalendarRepository extends JpaRepository<CalendarEntity, Date>{
 	
+	// SELECT * FROM Calendar WHERE date = target;
+    public List<CalendarEntity> findByDate(Date target);
+	
 	// SELECT * FROM Calendar WHERE date BETWEEN since AND until;
     public List<CalendarEntity> findByDateBetween(Date since, Date until);
 }

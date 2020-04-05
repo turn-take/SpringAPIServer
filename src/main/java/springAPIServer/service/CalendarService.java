@@ -6,7 +6,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import springAPIServer.dto.calendar.GetDataByMonthDto;
+import springAPIServer.dto.calendar.CalendarDto;
 import springAPIServer.entity.CalendarEntity;
 import springAPIServer.repository.CalendarRepository;
 
@@ -25,18 +25,36 @@ public class CalendarService {
 	}
 	
 	/**
-	 * 指定された月のデータ取得する。
-	 * @param GetDataByMonthDto.Input
-	 * @return　List<GetDataByMonthDto.Output>
+	 * 指定された日付のエンティティを取得する。
+	 * @param CaｌendarDto.Input
+	 * @return　List<CaｌendarDto.Output>
 	 */
-	public List<GetDataByMonthDto.Output> getDataByMonth(GetDataByMonthDto.Input input) {
-		List<GetDataByMonthDto.Output> outputList = new ArrayList<GetDataByMonthDto.Output>();
+//	public List<CaｌendarDto.Output> serchDate(Date date) {
+//		List<CaｌendarDto.Output> outputList = new ArrayList<CaｌendarDto.Output>();
+//		// DBから取得
+//		List<CalendarEntity> entities = calendarRepository.findByDateBetween(input.getFirstDate(), input.getLastDate());
+//
+//		// Output用List作成
+//		entities.stream()
+//		.map(entity -> new CaｌendarDto.Output(entity.getDate(), entity.getHolidayflag()))
+//		.forEach(outputList::add);
+//		
+//		return outputList;
+//	}
+	
+	/**
+	 * 指定された月のデータ取得する。
+	 * @param CaｌendarDto.Input
+	 * @return　List<CaｌendarDto.Output>
+	 */
+	public List<CalendarDto.Output> getDataByMonth(CalendarDto.Input input) {
+		List<CalendarDto.Output> outputList = new ArrayList<CalendarDto.Output>();
 		// DBから取得
 		List<CalendarEntity> entities = calendarRepository.findByDateBetween(input.getFirstDate(), input.getLastDate());
 
 		// Output用List作成
 		entities.stream()
-		.map(entity -> new GetDataByMonthDto.Output(entity.getDate(), entity.getHolidayflag()))
+		.map(entity -> new CalendarDto.Output(entity.getDate(), entity.getHolidayflag()))
 		.forEach(outputList::add);
 		
 		return outputList;
